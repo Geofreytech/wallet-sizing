@@ -1,10 +1,10 @@
-package com.example.walletsizing.infrastructure.persistence.config;
+package com.example.walletsizing.infrastructure.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -14,16 +14,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Disable CSRF (Cross-Site Request Forgery) for development
-                .csrf(AbstractHttpConfigurer::disable)
-
-                // 2. Authorize all requests without requiring a password
+                .csrf(csrf -> csrf.disable())
+                // 1. Set session to stateless (required for JWT)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
+                        .requestMatchers("/actuator/**").permitAll() // Health checks
+                        .anyRequest().authenticated()               // Everything else needs a JWT
                 )
-
-                // 3. Disable X-Frame-Options to allow H2 console or other tools if needed
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
+                // 2. Configure the app as an OAuth2 Resource Server
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
 
         return http.build();
     }
