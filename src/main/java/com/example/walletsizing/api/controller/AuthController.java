@@ -1,10 +1,8 @@
 package com.example.walletsizing.api.controller;
 
-
 import com.example.walletsizing.application.usecase.dto.UserResponse;
 import com.example.walletsizing.infrastructure.persistence.config.JwtUtils;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,20 +18,17 @@ public class AuthController {
         this.jwtUtils = jwtUtils;
     }
 
-    /**
-     * MOCK LOGIN: In production, this would validate against Active Directory.
-     * For now, it just returns a signed JWT token.
-     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
         String username = loginRequest.get("username");
 
-        // Simulating RBAC from SDD Section 6.2
-        // We will issue an "RM" role to anyone who logs in for testing
-        String token = jwtUtils.generateToken(username, "RM");
+        // FIX: Ensure the variable name matches what is used in the Map below
+        String accessToken = jwtUtils.generateToken(username, "RM");
+        String refreshToken = jwtUtils.generateRefreshToken(username);
 
         return ResponseEntity.ok(Map.of(
-                "accessToken", token,
+                "accessToken", accessToken,
+                "refreshToken", refreshToken,
                 "tokenType", "Bearer",
                 "role", "RM"
         ));
@@ -53,14 +48,31 @@ public class AuthController {
                 .findFirst()
                 .orElse("ROLE_USER");
 
-        // Ensure you are passing exactly 3 strings to match the record above
         return ResponseEntity.ok(new UserResponse(username, role, "Geoffrey Mwangi"));
     }
+
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
-        // Clear the security context
         SecurityContextHolder.clearContext();
-
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+
+        // Note: Check if your JwtUtils uses getUsernameFromToken or extractUsername
+        if (refreshToken != null && jwtUtils.validateToken(refreshToken)) {
+            String username = jwtUtils.getUsernameFromToken(refreshToken);
+
+            String newAccessToken = jwtUtils.generateToken(username, "RM");
+
+            return ResponseEntity.ok(Map.of(
+                    "accessToken", newAccessToken,
+                    "refreshToken", refreshToken
+            ));
+        }
+
+        return ResponseEntity.status(401).body("Invalid Refresh Token");
     }
 }
