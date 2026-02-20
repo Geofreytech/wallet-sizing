@@ -23,13 +23,17 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // 1. PUBLIC: Only Login needs to be open to everyone
+                        .requestMatchers("/api/v1/auth/login").permitAll()
 
+                        // 2. PRIVATE: These auth endpoints need a valid JWT
+                        .requestMatchers("/api/v1/auth/me", "/api/v1/auth/logout", "/api/v1/auth/refresh").authenticated()
+
+                        // Keep your existing error and customer rules
                         .requestMatchers("/error").permitAll()
-                        // 2. ADD THIS: Essential for Spring Boot 3+ error handling
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        // USE hasAnyAuthority with the FULL string "ROLE_RM"
                         .requestMatchers("/api/v1/customers/**").hasAnyAuthority("ROLE_RM", "ROLE_LEAD")
+
                         .anyRequest().authenticated()
                 );
 
