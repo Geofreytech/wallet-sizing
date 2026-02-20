@@ -7,6 +7,8 @@ import java.util.Optional;
 
 @Service
 public class CustomerService {
+
+
     private final JpaCustomerRepository repository;
 
     public CustomerService(JpaCustomerRepository repository) {
@@ -15,5 +17,9 @@ public class CustomerService {
 
     public Optional<Customer> findByCif(String cif) {
         return repository.findByCif(cif);
+    }
+
+    public Optional<Customer> findById(Long id) {
+        return repository.findById(id);
     }
 }

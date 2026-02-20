@@ -1,30 +1,39 @@
 package com.example.walletsizing.infrastructure.persistence.config;
 
+import com.example.walletsizing.infrastructure.persistence.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableWebSecurity
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                // 1. Disable CSRF (Cross-Site Request Forgery) for development
-                .csrf(AbstractHttpConfigurer::disable)
-
-                // 2. Authorize all requests without requiring a password
+        http.csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
-                )
+                        .requestMatchers("/api/v1/auth/**").permitAll()
 
-                // 3. Disable X-Frame-Options to allow H2 console or other tools if needed
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
+                        .requestMatchers("/error").permitAll()
+                        // 2. ADD THIS: Essential for Spring Boot 3+ error handling
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        // USE hasAnyAuthority with the FULL string "ROLE_RM"
+                        .requestMatchers("/api/v1/customers/**").hasAnyAuthority("ROLE_RM", "ROLE_LEAD")
+                        .anyRequest().authenticated()
+                );
 
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

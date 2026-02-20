@@ -3,7 +3,11 @@ package com.example.walletsizing.domain.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
 import java.math.BigDecimal;
+import java.util.Optional;
 
 @Entity
 @Table(name = "financial_data")
@@ -23,3 +27,5 @@ public class FinancialData {
 
     private String currency; // Always 'KES' for our current scope
 }
+
+

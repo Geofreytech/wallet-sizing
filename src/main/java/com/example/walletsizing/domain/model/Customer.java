@@ -4,12 +4,11 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-
 import java.util.List;
 
 @Entity
 @Table(name = "customers")
-@Data // Generates getters, setters, toString, equals, and hashCode
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Customer {
@@ -19,7 +18,7 @@ public class Customer {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String cif; // Customer Identification File
+    private String cif;
 
     @Column(nullable = false)
     private String name;
@@ -29,7 +28,16 @@ public class Customer {
 
     private String industry;
 
-    private String segment; // e.g., SME, SACCO, LARGE_ENTERPRISE
+    private String segment;
+
+    // Only one declaration needed!
+    @Column(name = "assigned_rm")
+    private String assignedRm;
+
+    // Note: @Data (Lombok) automatically creates getAssignedRm and setAssignedRm for you!
+
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<WalletSizing> walletSizings;
 
     @OneToMany(mappedBy = "customerId", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<FinancialData> financialData;
