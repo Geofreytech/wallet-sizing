@@ -31,13 +31,6 @@ public class WalletSizingService {
         // 1. JWT Security: Get the username from the authenticated token
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        System.out.println("=== SECURITY DEBUG START ===");
-        System.out.println("TOKEN USERNAME: [" + currentUsername + "]");
-        System.out.println("DB ASSIGNED RM: [" + customer.getAssignedRm() + "]");
-        System.out.println("=== SECURITY DEBUG END ===");
-        System.out.println("LOGGED IN: [" + currentUsername + "]");
-        System.out.println("DB OWNER: [" + customer.getAssignedRm() + "]");
-
 
         // 2. RBAC Check (Section 6.2): Ensure the RM owns this customer
         if (customer.getAssignedRm() == null || !customer.getAssignedRm().equals(currentUsername)) {
