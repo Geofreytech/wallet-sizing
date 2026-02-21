@@ -26,7 +26,8 @@ public class SecurityConfig {
                         // 1. PUBLIC: Only Login needs to be open to everyone
                         .requestMatchers("/api/v1/auth/login").permitAll()
 
-                        .requestMatchers("/api/v1/auth/refresh").permitAll() // Permit so users with expired access tokens can call it
+                        .requestMatchers("/api/v1/auth/refresh").permitAll()
+                        .requestMatchers("/api/v1/users/**").authenticated()// Permit so users with expired access tokens can call it
 
                         // 2. PRIVATE: These auth endpoints need a valid JWT
                         .requestMatchers("/api/v1/auth/me", "/api/v1/auth/logout", "/api/v1/auth/refresh").authenticated()

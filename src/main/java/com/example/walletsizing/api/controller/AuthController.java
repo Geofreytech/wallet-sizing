@@ -3,9 +3,11 @@ package com.example.walletsizing.api.controller;
 import com.example.walletsizing.application.usecase.dto.UserResponse;
 import com.example.walletsizing.infrastructure.persistence.config.JwtUtils;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -74,5 +76,13 @@ public class AuthController {
         }
 
         return ResponseEntity.status(401).body("Invalid Refresh Token");
+    }
+    @GetMapping("/permissions")
+    public ResponseEntity<List<String>> getPermissions() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        List<String> permissions = auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        return ResponseEntity.ok(permissions);
     }
 }
