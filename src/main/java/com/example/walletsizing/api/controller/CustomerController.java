@@ -3,6 +3,7 @@ package com.example.walletsizing.api.controller;
 import com.example.walletsizing.application.usecase.CustomerService;
 import com.example.walletsizing.application.usecase.EligibilityService;
 import com.example.walletsizing.application.usecase.WalletSizingService;
+import com.example.walletsizing.application.usecase.dto.CustomerSearchResponse;
 import com.example.walletsizing.application.usecase.dto.WalletSizingResponse;
 import com.example.walletsizing.application.usecase.dto.WalletCalculationRequest;
 import com.example.walletsizing.domain.model.Customer;
@@ -11,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/customers")
@@ -21,7 +24,6 @@ public class CustomerController {
     private final WalletSizingService walletSizingService;
     private final CustomerRepository customerRepository;
 
-    // Fixed Constructor: Now includes CustomerRepository in the parameters
     public CustomerController(
             CustomerService customerService,
             WalletSizingService walletSizingService,
@@ -33,47 +35,46 @@ public class CustomerController {
         this.customerRepository = customerRepository;
     }
 
+    // 1. Unified Search: Search by name or CIF
     @GetMapping("/search")
-    public ResponseEntity<?> searchByCif(@RequestParam String cif) {
-        return customerService.findByCif(cif)
-                .map(customer -> {
-                    boolean eligible = eligibilityService.isEligible(customer);
-                    return ResponseEntity.ok(new Object() {
-                        public Object data = customer;
-                        public boolean isEligible = eligible;
-                        public String status = eligible ? "Eligible" : "Ineligible";
-                    });
-                })
+    public ResponseEntity<List<CustomerSearchResponse>> search(@RequestParam String query) {
+        return ResponseEntity.ok(customerService.search(query));
+    }
+
+    // 2. Get Single Customer Details
+    @GetMapping("/{id}")
+    public ResponseEntity<Customer> getCustomer(@PathVariable Long id) {
+        return customerRepository.findById(id)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Endpoint for Postman: POST http://localhost:8080/api/v1/customers/1/calculate
+    // 3. Eligibility Check
+    @GetMapping("/{id}/eligibility")
+    public ResponseEntity<Map<String, Object>> checkEligibility(@PathVariable Long id) {
+        boolean isEligible = customerService.isEligibleForSizing(id);
+        return ResponseEntity.ok(Map.of(
+                "customerId", id,
+                "isEligible", isEligible,
+                "status", isEligible ? "Eligible" : "Ineligible",
+                "reason", isEligible ? "Criteria met" : "Missing required financial data (Turnover/Industry)"
+        ));
+    }
+
+    // 4. Wallet Sizing Calculation
     @PostMapping("/{id}/calculate")
     public ResponseEntity<WalletSizingResponse> calculate(
             @PathVariable Long id,
             @RequestBody WalletCalculationRequest request) {
 
-        // 1. Fetch the actual customer object from DB
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + id));
 
-        // 2. Pass the object and the debt from the request body to the service
         WalletSizingResponse response = walletSizingService.calculateDetailedSizing(
                 customer,
                 request.getExternalDebt()
         );
 
         return ResponseEntity.ok(response);
-    }
-
-    // Older endpoint (optional: you can keep or delete this)
-    @PostMapping("/{customerId}/wallet-sizings")
-    public ResponseEntity<WalletSizingResponse> createSizing(
-            @PathVariable Long customerId,
-            @RequestBody BigDecimal externalDebt) {
-
-        return customerService.findById(customerId)
-                .map(customer -> ResponseEntity.ok(walletSizingService.calculateDetailedSizing(customer, externalDebt)))
-                .orElse(ResponseEntity.notFound().build());
     }
 }
