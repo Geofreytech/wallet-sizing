@@ -1,14 +1,14 @@
 package com.example.walletsizing.application.usecase;
 
-import com.example.walletsizing.domain.model.Customer;
-import com.example.walletsizing.domain.model.FinancialData;
+import com.example.walletsizing.application.usecase.dto.WalletCalculationRequest;
 import com.example.walletsizing.application.usecase.dto.WalletSizingResponse;
+import com.example.walletsizing.domain.model.Customer;
+import com.example.walletsizing.domain.model.CustomerRepository;
 import com.example.walletsizing.domain.model.WalletSizing;
 import com.example.walletsizing.domain.model.WalletSizingRepository;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import java.math.BigDecimal;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -16,66 +16,63 @@ import java.util.List;
 public class WalletSizingService {
 
     private final WalletSizingRepository walletSizingRepository;
+    private final CustomerRepository customerRepository;
+    private final WalletCalculationService calculationService;
+    // Assuming you have a separate math service
 
-    public WalletSizingService(WalletSizingRepository walletSizingRepository) {
+    public WalletSizingService(WalletSizingRepository walletSizingRepository,
+                               CustomerRepository customerRepository,
+                               WalletCalculationService calculationService) {
         this.walletSizingRepository = walletSizingRepository;
+        this.customerRepository = customerRepository;
+        this.calculationService = calculationService;
     }
 
-    public List<WalletSizing> getCustomerHistory(Long customerId) {
-        // Basic history fetch - in a later step we can add a security check here too
+    // Fix for: GET /history
+    public List<WalletSizing> getHistoryByCustomer(Long customerId) {
         return walletSizingRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
     }
 
-    public WalletSizingResponse calculateDetailedSizing(Customer customer, BigDecimal externalDebt) {
+    // Fix for: GET by ID
+    public WalletSizing getById(Long id) {
+        return walletSizingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sizing record not found with ID: " + id));
+    }
 
-        // 1. JWT Security: Get the username from the authenticated token
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+    @Transactional
+    public WalletSizing saveNewSizing(Long customerId, WalletCalculationRequest request) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
 
+        WalletSizingResponse result = calculationService.calculateDetailedSizing(customer, request.getExternalDebt());
 
-        // 2. RBAC Check (Section 6.2): Ensure the RM owns this customer
-        if (customer.getAssignedRm() == null || !customer.getAssignedRm().equals(currentUsername)) {
-            throw new AccessDeniedException("Security Alert: Customer " + customer.getCif() + " is assigned to another RM.");
+        WalletSizing entity = new WalletSizing();
+        entity.setCustomer(customer);
+        entity.setExternalDebt(request.getExternalDebt());
+
+        // Use the getters from your Record to fill the Entity
+        entity.setInternalDebt(result.internalBalance());
+        entity.setTotalWallet(result.totalMarketSize()); // Maps result to Entity
+        entity.setWalletShare(result.walletShare());     // Maps result to Entity
+
+        entity.setStatus("DRAFT");
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setFinancialPeriod("2025-2026"); // Or dynamic from request
+
+        return walletSizingRepository.save(entity);
+    }
+
+    // Fix for: POST /submit
+    @Transactional
+    public void submit(Long id) {
+        WalletSizing sizing = getById(id);
+
+        if ("SUBMITTED".equals(sizing.getStatus())) {
+            throw new IllegalStateException("This sizing has already been submitted and cannot be modified.");
         }
 
-        // 3. Calculation Logic
-        List<FinancialData> internalData = customer.getFinancialData();
-        BigDecimal internalTotal = internalData.stream()
-                .filter(data -> "LOAN_BALANCE".equals(data.getCategory()))
-                .map(FinancialData::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalMarket = internalTotal.add(externalDebt);
-        BigDecimal share = WalletSizingResponse.calculateShare(internalTotal, totalMarket);
-        BigDecimal gap = totalMarket.subtract(internalTotal);
-
-        String recommendation = (share.compareTo(new BigDecimal("30")) < 0)
-                ? "High Opportunity: Increase limit"
-                : "Maintain: Dominant share";
-
-        // 4. Persistence with Audit Trail (Section 6.1)
-        WalletSizing sizing = new WalletSizing();
-        sizing.setCustomer(customer);
-        sizing.setExternalDebt(externalDebt);
-        sizing.setInternalDebt(internalTotal);
-        sizing.setTotalMarketDebt(totalMarket);
-        sizing.setWalletSharePercentage(share);
         sizing.setStatus("SUBMITTED");
-        sizing.setFinancialPeriod("FY2026");
-
-        // Plotted currentUsername instead of SYSTEM_RM
-        sizing.setCreatedBy(currentUsername);
-        sizing.setCreatedAt(LocalDateTime.now());
-
+        // sizing.setSubmittedAt(LocalDateTime.now()); // Ensure this field exists in your Entity
         walletSizingRepository.save(sizing);
-
-        // 5. Build Response (Matches your 6-argument Record)
-        return new WalletSizingResponse(
-                internalTotal,
-                externalDebt,
-                totalMarket,
-                share,
-                gap,
-                recommendation
-        );
     }
 }

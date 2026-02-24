@@ -14,10 +14,9 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "wallet_sizings")
-@Data // This generates setExternalDebt() automatically
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class WalletSizing {
@@ -34,16 +33,17 @@ public class WalletSizing {
     private String financialPeriod;
 
     private BigDecimal annualTurnover;
-
-    // THE NEW FIELDS
     private BigDecimal internalDebt;
-    private BigDecimal externalDebt; // This creates setExternalDebt()
-    private BigDecimal totalMarketDebt;
-    private BigDecimal walletSharePercentage;
+    private BigDecimal externalDebt;
+
+    // RENAME these to match what the Service is calling
+    private BigDecimal totalWallet;  // Matches setTotalWallet()
+    private BigDecimal walletShare;  // Matches setWalletShare()
 
     @Column(nullable = false)
     private String status;
 
     private String createdBy;
     private LocalDateTime createdAt;
+    private LocalDateTime submittedAt; // Added this for your submit logic
 }

@@ -15,4 +15,6 @@ public interface WalletSizingRepository extends JpaRepository<WalletSizing, Long
     List<WalletSizing> findByCreatedBy(String rmUsername);
 
     List<WalletSizing> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+
+
 }
