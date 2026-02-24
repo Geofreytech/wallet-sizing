@@ -29,3 +29,17 @@ INSERT IGNORE INTO wallet_sizings
 (customer_id, financial_period, annual_turnover, total_market_debt, internal_debt, wallet_share_percentage, status, created_by, created_at)
 VALUES
 (1, 'FY2025', 50000000.00, 20000000.00, 5000000.00, 25.00, 'DRAFT', 'geoffrey.kimani', NOW());
+
+       -- IM-CAPITAL (Capital Markets/Bonds)
+INSERT INTO financial_data (customer_id, category, amount, currency)
+VALUES (2, 'IM_CAPITAL_BONDS', 15000000.00, 'KES');
+
+-- IM-PRODUCTS (Treasury/Fixed Income)
+INSERT INTO financial_data (customer_id, category, amount, currency)
+VALUES (2, 'IM_PRODUCT_FIXED_DEPOSIT', 5000000.00, 'KES');
+
+-- EXTERNAL-FACILITIES (Debt at other banks)
+INSERT INTO financial_data (customer_id, category, amount, currency)
+VALUES (2, 'EXTERNAL_LOAN_EQUITY', 12000000.00, 'KES');
+INSERT INTO financial_data (customer_id, category, amount, currency)
+VALUES (2, 'EXTERNAL_OVERDRAFT_ABSA', 3000000.00, 'KES');

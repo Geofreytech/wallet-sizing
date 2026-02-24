@@ -3,11 +3,13 @@ package com.example.walletsizing.application.usecase;
 import com.example.walletsizing.application.usecase.dto.CustomerSearchResponse;
 import com.example.walletsizing.domain.model.Customer;
 import com.example.walletsizing.domain.model.CustomerRepository;
+import com.example.walletsizing.domain.model.FinancialData;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CustomerService {
@@ -57,5 +59,26 @@ public class CustomerService {
     public Optional<Customer> findByCif(String cif) {
         // Using the built-in findByCif from your Repository
         return customerRepository.findByCif(cif);
+    }
+    /**
+     * Fetches specific financial components for a customer by category.
+     */
+    public List<FinancialData> getFinancialsByCategory(Long customerId, String category) {
+        return customerRepository.findById(customerId)
+                .map(customer -> {
+                    List<FinancialData> allData = customer.getFinancialData();
+                    System.out.println("DEBUG: Found " + allData.size() + " total financial records for customer " + customerId);
+
+
+                    List<FinancialData> filtered = allData.stream()
+                            .filter(fd -> fd.getCategory() != null &&
+                                    fd.getCategory().toUpperCase().contains(category.toUpperCase()))
+                            .collect(Collectors.toList());
+
+
+
+                    return filtered;
+                })
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
     }
 }

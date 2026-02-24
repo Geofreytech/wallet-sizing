@@ -8,6 +8,7 @@ import com.example.walletsizing.application.usecase.dto.WalletSizingResponse;
 import com.example.walletsizing.application.usecase.dto.WalletCalculationRequest;
 import com.example.walletsizing.domain.model.Customer;
 import com.example.walletsizing.domain.model.CustomerRepository;
+import com.example.walletsizing.domain.model.FinancialData;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -76,5 +77,30 @@ public class CustomerController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{customerId}/loans")
+    public ResponseEntity<List<FinancialData>> getLoans(@PathVariable Long customerId) {
+        return ResponseEntity.ok(customerService.getFinancialsByCategory(customerId, "LOAN_BALANCE"));
+    }
+
+    @GetMapping("/{customerId}/deposits")
+    public ResponseEntity<List<FinancialData>> getDeposits(@PathVariable Long customerId) {
+        return ResponseEntity.ok(customerService.getFinancialsByCategory(customerId, "DEPOSIT_BALANCE"));
+    }
+
+    @GetMapping("/{customerId}/im-products")
+    public ResponseEntity<List<FinancialData>> getInvestmentProducts(@PathVariable Long customerId) {
+        return ResponseEntity.ok(customerService.getFinancialsByCategory(customerId, "IM_PRODUCT"));
+    }
+
+    @GetMapping("/{customerId}/im-capital")
+    public ResponseEntity<List<FinancialData>> getCapitalProducts(@PathVariable Long customerId) {
+        return ResponseEntity.ok(customerService.getFinancialsByCategory(customerId, "IM_CAPITAL"));
+    }
+
+    @GetMapping("/{customerId}/external-facilities")
+    public ResponseEntity<List<FinancialData>> getExternalFacilities(@PathVariable Long customerId) {
+        return ResponseEntity.ok(customerService.getFinancialsByCategory(customerId, "EXTERNAL"));
     }
 }
